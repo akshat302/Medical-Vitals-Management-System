@@ -11,4 +11,4 @@ def get_user_vital_percentile(target_aggregate, user_vital_aggregates):
     for vital_aggregate in user_vital_aggregates:
         if vital_aggregate < target_aggregate:
             count += 1
-    return (count//len(user_vital_aggregates))*100
+    return (count/len(user_vital_aggregates))*100

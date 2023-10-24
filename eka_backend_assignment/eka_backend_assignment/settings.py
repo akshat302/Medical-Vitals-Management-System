@@ -31,7 +31,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "vital_management_system",
     "rest_framework",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -39,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "vital_management_system"
 ]
 
 MIDDLEWARE = [

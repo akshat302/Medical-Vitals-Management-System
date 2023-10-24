@@ -7,7 +7,7 @@ class UserRecordSerializer(serializers.ModelSerializer):
         fields = ['username', 'gender', 'age']
 
     def create(self, validated_data):
-        user = UserRecords.objects.create_user(**validated_data)
+        user = UserRecords.objects.create(**validated_data)
         user.save()
         return user
 
@@ -18,6 +18,7 @@ class VitalRecordsSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         vital_record = VitalRecords.objects.create(**validated_data)
+        vital_record.save()
         return vital_record
 
 class UserVitalRecordsSerializer(serializers.ModelSerializer):

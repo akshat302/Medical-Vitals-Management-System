@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from vital_management_system.models import UserRecords, UserVitalRecords
 from vital_management_system.utils import get_vitals_aggregate, get_user_vital_percentile
 
 # Create your views here.
-class CreateUser(APIView):
+class CreateUserView(APIView):
 
     def post(self, request):
         try:
@@ -15,7 +16,7 @@ class CreateUser(APIView):
             if serializer.is_valid():
                 user = serializer.save()
                 response = {
-                    "status": "success",
+                    "status": "success",    
                     "message": f"User {user.username} created successfully."
                     }
                 return Response(response, status=status.HTTP_201_CREATED)
@@ -30,7 +31,7 @@ class GetUserInformation(APIView):
 
         try:
             username = request.GET.get('username')
-            user_records = UserRecords.objects.filter(username=username).all()
+            user_records = UserRecords.objects.filter(username=username).first()
             user_records_serializer = UserRecordSerializer(user_records)
             return Response(user_records_serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -41,7 +42,7 @@ class InsertVitalId(APIView):
     def post(self, request):
 
         try:
-            serializer = VitalRecordsSerializer(request.data)
+            serializer = VitalRecordsSerializer(data=request.data)
             if serializer.is_valid():
                 vital_record = serializer.save()
                 response = {
@@ -59,12 +60,12 @@ class InsertUserVital(APIView):
     def post(self, request):
 
         try:
-            serializer = UserVitalRecordsSerializer(request.data)
+            serializer = UserVitalRecordsSerializer(data=request.data)
             if serializer.is_valid():
                 vital_record = serializer.save()
                 response = {
                     "status": "success",
-                    "message": f"vital_id {vital_record.vital_id} added successfully"
+                    "message": f"vital_id {vital_record.vital_id.vital_id} added successfully"
                     }
                 return Response(response, status=status.HTTP_201_CREATED)
             return Response({"status": "Failed", "message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -79,12 +80,11 @@ class GetUserVitals(APIView):
             json_data = request.data
             username = json_data["username"]
             period = json_data["period"]
-
             start_time = period[0]
             end_time = period[1]
 
             user_vitals = UserVitalRecords.objects.filter(username=username, timestamp__range=(start_time, end_time))
-            user_vitals_serializer = UserVitalRecordsSerializer(user_vitals)
+            user_vitals_serializer = UserVitalRecordsSerializer(user_vitals, many=True)
             return Response(user_vitals_serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"status": "Failed", "message": f"some error occured {e}"}, status=status.HTTP_400_BAD_REQUEST)
@@ -110,7 +110,7 @@ class UserVitalsAggregate(APIView):
                     "message": "Aggregate fetched successfully.",
                     "data": {
                         "username": username,
-                        "aggregates": user_vital_aggregate,
+                        "aggregates": user_vital_aggregates,
                         "start_timestamp": start_timestamp,
                         "end_timestamp": end_timestamp
                     }
@@ -130,11 +130,13 @@ class PopulationInsights(APIView):
             start_timestamp = json_data.get("start_timestamp")
             end_timestamp = json_data.get("end_timestamp")
 
-            user_vital_records = UserVitalRecords.objects.filter(vital_id=vital_id).all()
+            distinct_vital_users = UserVitalRecords.objects.filter(vital_id=vital_id).values("username").distinct() 
             target_aggregate, user_vital_aggregates = 0, []
-            for user_vital in user_vital_records:
-                vital_aggregate = get_vitals_aggregate(vital_id, user_vital.username, start_timestamp, end_timestamp)
-                if username == user_vital.username:
+            for user_vital in distinct_vital_users:
+                print(user_vital["username"])
+                vital_aggregate = get_vitals_aggregate(vital_id, user_vital["username"], start_timestamp, end_timestamp)
+                user_vital_aggregates.append(vital_aggregate)
+                if username == user_vital["username"]:
                     target_aggregate = vital_aggregate
 
             percentile = get_user_vital_percentile(target_aggregate, user_vital_aggregates)
